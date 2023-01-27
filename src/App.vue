@@ -1,91 +1,80 @@
-<script setup>
-import { RouterLink, RouterView } from "vue-router";
-import HelloWorld from "./components/HelloWorld.vue";
-</script>
-
 <template>
-  <header>
-    <img
-      alt="Vue logo"
-      class="logo"
-      src="@/assets/logo.svg"
-      width="125"
-      height="125"
-    />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+  <!-- TODO: Guardar as moedas tracked e as meodas da api em um gerenciador de estado global do Pinia e fazer o preservamento -->
+  <div class="container grid-lg my-2 py-2">
+    <!-- moedas que o usuario listou para acompanhar -->
+    <div class="card mb-4" v-if="listenQuotes.length > 0">
+      <div class="card-header">
+        <div class="h4">Tracking Your Favorite(s) Coin(s)</div>
+      </div>
+      <div class="card-body">
+        <WatchListQuotes :listenQuotes="listenQuotes"/>
+      </div>
     </div>
-  </header>
-
-  <RouterView />
+    <div v-else>
+      <div class="alert alert-danger text-center">Não há nenhuma moeda para ser rastreada</div>
+    </div>
+    
+    <!-- todas as moedas buscadas pela api -->
+    <div class="card">
+      <div class="card-header">
+        <div class="h4">All Coins...</div>
+      </div>
+      <div class="card-body">
+        <list-quotes 
+        :quotes="quotes" 
+        :listenQuotes="listenQuotes"
+        v-on:listen="onListen"
+        v-on:unlisten="onUnListen"
+        />
+      </div>
+    </div>
+    <!-- usado apenas para testes da chamada de api -->
+    <!-- {{ quotes }} -->
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
+<script lang="ts">
+import { reactive, ref, toRefs } from "@vue/reactivity";
+import api from './services/api';
+import { onMounted } from '@vue/runtime-core';
+import ListQuotes from './components/ListQuotes.vue';
+import WatchListQuotes from "./components/WatchListQuotes.vue";
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+export default {
+  components: { ListQuotes, WatchListQuotes },
+  setup() {
+    interface Quote {
+      key: string;
+      name: string;
+      high: number;
+      low: number;
+      pctChange: number;
+    }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
+    function onListen(code) {
+      data.listenQuotes.push(code)
+    }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
+    function onUnListen(code) {
+      //alert(code)
+      data.listenQuotes = data.listenQuotes.filter(key => key !== code)
+      console.log(data.listenQuotes);
+      
+    }
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
+    const data = reactive({
+      quotes: {},
+      listenQuotes: [],
+    })
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
+    onMounted(async () => {
+      const response = await api.all();
+      data.quotes = response.data;
+    })
 
-nav a:first-of-type {
-  border: 0;
-}
+    return { ...toRefs(data), onUnListen, onListen };
+  },
+};
+</script>
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
+<style scoped></style>
